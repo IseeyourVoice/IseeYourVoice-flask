@@ -1,0 +1,130 @@
+/* Global background style */
+body {
+    background-image: url('../images/banner.png'); /* Background image path */
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+    background-repeat: no-repeat;
+    background-blend-mode: multiply;
+    background-color: #ffe4e1;  /* Light pink background color for fallback */
+}
+
+/* Fade-in animation */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+.fade-in {
+    animation: fadeIn 2s ease-in-out;
+}
+
+
+/* Main content background for readability */
+.main-content {
+    background-color: rgba(255, 245, 245, 0.8); /* Soft pinkish-white background with transparency */
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Navbar styling */
+.navbar {
+    background-color: rgba(255, 182, 193, 0.3); /* Light pink transparent navbar */
+    box-shadow: 0 4px 2px -2px rgba(0, 0, 0, 0.1);
+    backdrop-filter: blur(10px); /* Soft blur effect */
+}
+
+/* Navbar brand */
+.navbar-brand {
+    font-weight: bold;
+    color: #FF69B4; /* Brighter pink for the brand */
+}
+
+/* Navbar links */
+.nav-link {
+    color: #FFB6C1 !important; /* White for better contrast */
+}
+
+/* Active navbar link */
+.nav-link.active {
+    font-weight: bold;
+    color: #FF69B4 !important; /* Pink accent for active links */
+}
+
+/* Buttons */
+.btn-primary {
+    background-color: #FFB6C1; /* Soft pink primary button */
+    border-color: #FFB6C1;
+}
+
+.btn-primary:hover {
+    background-color: #FF69B4; /* Brighter pink on hover */
+    border-color: #FF69B4;
+}
+
+.btn-outline-danger {
+    color: #FF69B4;
+    border-color: #FF69B4;
+}
+
+.btn-outline-danger:hover {
+    background-color: #FF69B4;
+    color: #fff;
+    border-color: #FF69B4;
+}
+
+/* Google login button */
+.auth-buttons .google-login-btn {
+    background-color: transparent;
+    border: none;
+}
+
+.auth-buttons .google-login-btn img {
+    transition: transform 0.2s ease-in-out;
+}
+
+.auth-buttons .google-login-btn:hover img {
+    transform: scale(1.1); /* Slight zoom on hover */
+}
+
+/* Cards */
+.card {
+    background-color: rgba(255, 245, 245, 0.8); /* Light pinkish-white card background */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    border: none;
+    border-radius: 10px;
+    transition: transform 0.2s ease-in-out;
+}
+
+.card:hover {
+    transform: scale(1.05);
+}
+
+.card-title {
+    color: #FF69B4;
+    font-weight: bold;
+}
+
+.card-text {
+    color: #333; /* Dark text for readability */
+}
+
+.btn-outline-primary {
+    color: #FF69B4;
+    border-color: #FF69B4;
+}
+
+.btn-outline-primary:hover {
+    background-color: #FF69B4;
+    color: #fff;
+    border-color: #FF69B4;
+}
+
+
+
+

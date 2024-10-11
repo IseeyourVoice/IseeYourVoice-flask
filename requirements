@@ -1,0 +1,13 @@
+blinker
+click
+itsdangerous
+Jinja2
+Werkzeug
+Bootstrap-Flask
+Flask-Bootstrap
+flask-bootstrap5
+Flask-Login
+Flask-Migrate
+Flask-SQLAlchemy
+Flask-WTF
+

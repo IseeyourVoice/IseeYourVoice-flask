@@ -1,0 +1,28 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2 class="mb-4 text-center">Create a New Post</h2> <!-- 중앙 정렬된 타이틀 -->
+    <form action="{{ url_for('community_bp.post') }}" method="POST" enctype="multipart/form-data">
+        <!-- Title field -->
+        <div class="mb-4">
+            <label for="title" class="form-label">Title</label>
+            <textarea id="title" class="form-control shadow-sm" name="title" placeholder="Write your title..." rows="2" required></textarea>
+        </div>
+        <!-- Content field -->
+        <div class="mb-4">
+            <label for="content" class="form-label">Content</label>
+            <textarea id="content" class="form-control shadow-sm" name="content" placeholder="Write your post..." rows="4" required></textarea>
+        </div>
+        <!-- File upload field -->
+        <div class="mb-4">
+            <label for="file" class="form-label">Upload Audio</label>
+            <input type="file" id="file" class="form-control shadow-sm" name="file" accept=".mp3,.wav,.ogg">
+        </div>
+        <!-- Submit button -->
+        <div class="d-grid">
+            <button type="submit" class="btn btn-primary btn-lg shadow">Post with Audio</button> <!-- Submit button with full width -->
+        </div>
+    </form>
+</div>
+{% endblock %}

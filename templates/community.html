@@ -1,0 +1,31 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+
+
+<div class="container mt-5 community-highlight">
+    <h2 class="mb-4 text-center text-primary">커뮤니티의 최신 게시물</h2>
+
+    <!-- Post List -->
+    <ul class="list-group">
+        {% for post in posts %}
+        <li class="list-group-item">
+            <h5>{{ post.user.name }} 님의 게시물</h5>
+            <p>{{ post.content }}</p>
+            <p class="text-muted">{{ post.timestamp.strftime('%Y-%m-%d %H:%M') }}</p>
+            {% if post.audio_file %}
+            <audio controls>
+                <source src="{{ url_for('static', filename='uploads/' + post.audio_file) }}" type="audio/mpeg">
+                Your browser does not support the audio element.
+            </audio>
+            {% endif %}
+        </li>
+        {% endfor %}
+    </ul>
+
+    <!-- Write a new post -->
+    <div class="text-center mt-5">
+        <a href="{{ url_for('community_bp.post') }}" class="btn btn-lg btn-primary">새 게시물 작성하기</a>
+    </div>
+</div>
+{% endblock %}

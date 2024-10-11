@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flask App</title>
+    {{ bootstrap.load_css() }}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <header>
+        <!-- Bootstrap navigation bar -->
+        <nav class="navbar navbar-expand-lg navbar-light bg-light">
+            <div class="container-fluid">
+                <a class="navbar-brand text-primary" href="{{ url_for('home') }}">너목보</a>
+
+                <!-- Hamburger button for mobile -->
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <!-- Navbar content -->
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav ms-auto">
+                        <!-- Community Link -->
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.endpoint == 'community_bp.community' %}active{% endif %}" href="{{ url_for('community_bp.community') }}">Community</a>
+                        </li>
+
+                        {% if session.get('user') %}
+                        <!-- Greeting and Logout for logged-in users -->
+                        <li class="nav-item">
+                            <span class="nav-link">Hello, {{ session['user']['name'] }}!</span>
+                        </li>
+                        <li class="nav-item auth-buttons">
+                            <a class="nav-link btn btn-outline-danger" href="{{ url_for('auth_bp.logout') }}">Logout</a>
+                        </li>
+                        {% else %}
+                        <!-- Google Login for non-logged-in users -->
+                        <li class="nav-item auth-buttons">
+                            <a class="google-login-btn nav-link" href="{{ url_for('auth_bp.login') }}">
+                                <img src="{{ url_for('static', filename='images/google_signin_button.png') }}" alt="Google 로그인" style="height:40px;">
+                            </a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Main content wrapper with background -->
+    <main class="container main-content mt-4">
+        <!-- Page-specific content goes here -->
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Load Bootstrap JS -->
+    {{ bootstrap.load_js() }}
+</body>
+</html>

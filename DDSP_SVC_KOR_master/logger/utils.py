@@ -1,4 +1,5 @@
 import os
+
 import yaml
 import json
 import pickle
@@ -66,6 +67,7 @@ def get_network_paras_amount(model_dict):
 
 
 def load_config(path_config):
+    current_directory = os.getcwd()
     with open(path_config, "r") as config:
         args = yaml.safe_load(config)
     args = DotDict(args)

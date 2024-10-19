@@ -13,7 +13,7 @@ import torchaudio
 from torchaudio.utils import download_asset
 from torchaudio.pipelines import HDEMUCS_HIGH_MUSDB_PLUS
 from torchaudio.transforms import Fade
-from logger.utils import traverse_dir
+from DDSP_SVC_KOR_master.logger.utils import traverse_dir
 temp_log_path = "temp_ffmpeg_log.txt"  # ffmpeg의 무음 감지 로그의 임시 저장 위치
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu") # demucs (목소리 추출)을 위한 device 세팅

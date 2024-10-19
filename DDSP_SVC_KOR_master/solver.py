@@ -3,8 +3,8 @@ import time
 import numpy as np
 import torch
 
-from logger.saver import Saver
-from logger import utils
+from DDSP_SVC_KOR_master.logger.saver import Saver
+from DDSP_SVC_KOR_master.logger import utils
 
 def test(args, model, loss_func, loader_test, saver):
     print(' [*] testing...')

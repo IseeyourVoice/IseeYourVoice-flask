@@ -2,11 +2,11 @@ import os
 import argparse
 import torch
 
-from logger import utils
-from data_loaders import get_data_loaders
-from solver import train
-from ddsp.vocoder import Sins, CombSub, CombSubFast
-from ddsp.loss import RSSLoss
+from DDSP_SVC_KOR_master.logger import utils
+from DDSP_SVC_KOR_master.data_loaders import get_data_loaders
+from DDSP_SVC_KOR_master.solver import train
+from DDSP_SVC_KOR_master.ddsp.vocoder import Sins, CombSub, CombSubFast
+from DDSP_SVC_KOR_master.ddsp.loss import RSSLoss
 
 
 def parse_args(args=None, namespace=None):

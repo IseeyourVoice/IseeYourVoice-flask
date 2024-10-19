@@ -7,11 +7,11 @@ import pyworld as pw
 import parselmouth
 import argparse
 import shutil
-from logger import utils
+from DDSP_SVC_KOR_master.logger import utils
 from tqdm import tqdm
-from ddsp.vocoder import F0_Extractor, Volume_Extractor, Units_Encoder
-from diffusion.vocoder import Vocoder
-from logger.utils import traverse_dir
+from DDSP_SVC_KOR_master.ddsp.vocoder import F0_Extractor, Volume_Extractor, Units_Encoder
+from DDSP_SVC_KOR_master.diffusion.vocoder import Vocoder
+from DDSP_SVC_KOR_master.logger.utils import traverse_dir
 import concurrent.futures
 
 def parse_args(args=None, namespace=None):

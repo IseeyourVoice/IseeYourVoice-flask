@@ -1,0 +1,40 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<div class="container mt-5">
+    <!-- Welcome Section -->
+    <div class="text-center mb-5">
+        <h1 class="display-3 fw-bold text-primary">음성 학습</h1>
+        <p class="lead text-secondary">좋아하는 가수의 목소리를 학습시켜서 음성 학습 모델을 만들어보세요.</p>
+    </div>
+
+    <link href="static/dropzone.css" rel="stylesheet">
+
+    <!-- form -->
+    <div class="text-center justify-content-sm-center" style="height:100%; margin-top: 9rem; margin-bottom: 9rem;">
+        <div class="d-grid gap-3 d-sm-flex justify-content-sm-center">
+            <form method="POST" action="/train_start" enctype="multipart/form-data" id="submitForm">
+                <div class="drop-zone">
+                    <span class="drop-zone__prompt">클릭 또는 Drag&Drop 하세요</span>
+                    <input type="file" name="file" class="drop-zone__input">
+                    <!--loading-->
+                    <div class="loading-container" id="loading-container">
+                        <div class="loader"></div>
+                    </div>
+                </div>
+                </br></br>
+                <button class="btn btn-primary btn-lg px-4 me-sm-3" id='smt' type="submit">확인</button>
+                <button class="btn btn-outline-danger btn-lg px-4" id='rst' onClick="location.href=''" type='reset'>취소</button>
+            </form>
+        </div>
+        <p class="lead text-secondary" style="font-size: 20px;">
+        </br>
+        </br>여기에서 학습시킬 가수의 목소리(.wav) 파일을 업로드하고 학습 모델을 생성할 수 있습니다.
+        </br>업로드 가능한 파일의 최대 크기는 1GB입니다.
+        </p>
+    </div>
+
+    <script src="{{ url_for('static', filename='style.js') }}"></script>
+    <script src="static/index.js"></script>
+</div>
+{% endblock %}

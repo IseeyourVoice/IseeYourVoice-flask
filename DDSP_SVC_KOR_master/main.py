@@ -8,10 +8,10 @@ import pyworld as pw
 import parselmouth
 import hashlib
 from ast import literal_eval
-from slicer import Slicer
-from ddsp.vocoder import load_model, F0_Extractor, Volume_Extractor, Units_Encoder
-from ddsp.core import upsample
-from enhancer import Enhancer
+from DDSP_SVC_KOR_master.slicer import Slicer
+from DDSP_SVC_KOR_master.ddsp.vocoder import load_model, F0_Extractor, Volume_Extractor, Units_Encoder
+from DDSP_SVC_KOR_master.ddsp.core import upsample
+from DDSP_SVC_KOR_master.enhancer import Enhancer
 from tqdm import tqdm
 
 def parse_args(args=None, namespace=None):

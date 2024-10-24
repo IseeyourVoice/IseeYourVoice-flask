@@ -16,21 +16,25 @@ from DDSP_SVC_KOR_master.preprocess import preprocess
 from DDSP_SVC_KOR_master.ddsp.vocoder import F0_Extractor, Volume_Extractor, Units_Encoder
 from DDSP_SVC_KOR_master.diffusion.vocoder import Vocoder
 from DDSP_SVC_KOR_master.train import ddsp_train
-
 from types import SimpleNamespace
 from DDSP_SVC_KOR_master.main import inference
+from mail.mail import mail, send_mail, send_training_complete_email, send_inference_complete_email
 
-def make_process(file_path):
+def make_process(file_path, file_name):
     os.chdir(os.path.dirname(__file__))
 
-    shutil.copy(file_path, 'output/' + 'original.wav')
-    print(f"{file_path}가 {'output/' + 'original.wav'}에 복사되었습니다.")
+    INPUT_PATH = "output/input/"
+    MODEL_PATH = 'exp/sins-test/model_2000.pt'
+    OUTPUT_PATH = 'output/result/'
+
+    shutil.copy(file_path, INPUT_PATH + str(file_name))
+    print(f"{file_path}가 {OUTPUT_PATH}'에 복사되었습니다.")
 
     # configure setting
     configures = {
-        'model_path'            :   'exp/sins-test/model_2000.pt', # 추론에 사용하고자 하는 모델, 바로위에서 학습한 모델을 가져오면댐
-        'input'                 :   'output/original.wav', # 추론하고자 하는 노래파일의 위치 - 님들이 바꿔야댐 
-        'output'                :   'output/output.wav',  # 결과물 파일의 위치
+        'model_path'            :   MODEL_PATH, # 추론에 사용하고자 하는 모델
+        'input'                 :   INPUT_PATH + str(file_name), # 추론하고자 하는 노래파일의 위치
+        'output'                :   OUTPUT_PATH + str(file_name), # 결과물 파일의 위치
         'device'                :   'cuda',
         'spk_id'                :   '1', 
         'spk_mix_dict'          :   'None', 
@@ -46,3 +50,7 @@ def make_process(file_path):
 
     print("**** make start SUCCESS ****")
     inference(cmd)
+
+    # 추론 완료 메일 발송
+    print("**** make finish SUCCESS ****")
+    # send_inference_complete_email()

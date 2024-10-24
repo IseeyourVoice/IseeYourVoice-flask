@@ -15,7 +15,7 @@ from flask_migrate import Migrate
 from flask_bootstrap import Bootstrap5
 from models.user import User
 from concurrent.futures import ThreadPoolExecutor
-
+from mail.mail import mail, send_mail, send_training_complete_email, send_inference_complete_email
 from DDSP_SVC_KOR_master import train_process, make_process
 os.chdir(os.path.dirname(__file__))
 
@@ -49,6 +49,7 @@ def load_user(user_id):
 oauth.init_app(app)
 google = create_google_oauth(app)
 init_google(google)  # Pass the OAuth object to routes
+mail.init_app(app)
 
 # Register blueprints
 app.register_blueprint(auth_bp, url_prefix='/auth')
@@ -94,7 +95,7 @@ def train_start():
     file_name, file_path = save_uploaded_train_file(file)
 
     # 여기서 비동기로 학습 시작
-    executor.submit(train_process.train_process, file_path)
+    executor.submit(train_process.train_process, file_path, file_name)
     os.chdir(os.path.dirname(__file__))
 
     return render_template('train_start.html')
@@ -112,11 +113,10 @@ def make_start():
         return redirect('/')
 
     file = request.files['file']
-    file_name, file_path = save_uploaded_train_file(file)
+    file_name, file_path = save_uploaded_make_file(file)
 
     # 여기서 비동기로 추론 시작
-    #executor.submit(make_process.make_process, file_path)
-    make_process.make_process(file_path)
+    executor.submit(make_process.make_process(file_path, file_name))
     os.chdir(os.path.dirname(__file__))
 
     return render_template('make_start.html')

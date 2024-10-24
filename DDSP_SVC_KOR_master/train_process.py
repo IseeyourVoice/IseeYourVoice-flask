@@ -16,8 +16,9 @@ from DDSP_SVC_KOR_master.preprocess import preprocess
 from DDSP_SVC_KOR_master.ddsp.vocoder import F0_Extractor, Volume_Extractor, Units_Encoder
 from DDSP_SVC_KOR_master.diffusion.vocoder import Vocoder
 from DDSP_SVC_KOR_master.train import ddsp_train
+from mail.mail import mail, send_mail, send_training_complete_email, send_inference_complete_email
 
-def train_process(file_path):
+def train_process(file_path, file_name):
     os.chdir(os.path.dirname(__file__))
 
     # Cuda setting
@@ -33,7 +34,7 @@ def train_process(file_path):
     NORM_PATH       = 'preprocess/norm/'
     TEMP_LOG_PATH   = 'temp_ffmpeg_log.txt'  # ffmpeg의 무음 감지 로그의 임시 저장 위치
 
-    shutil.copy(file_path, ORIGINAL_PATH + 'sample.wav')
+    shutil.copy(file_path, ORIGINAL_PATH + str(file_name))
     print(f"{file_path}가 {ORIGINAL_PATH}에 복사되었습니다.")
 
     demucs(ORIGINAL_PATH, DEMUCS_PATH)
@@ -128,5 +129,10 @@ def train_process(file_path):
     # preprocess validation set
     preprocess(args.data.valid_path, f0_extractor, volume_extractor, mel_extractor, units_encoder, sample_rate, hop_size, device = device)
 
+    # 학습 시작
     print("**** train start SUCCESS ****")
     ddsp_train(args)
+
+    # 학습 완료 메일 발송
+    print("**** train finish SUCCESS ****")
+    # send_training_complete_email()

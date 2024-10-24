@@ -17,6 +17,9 @@ from DDSP_SVC_KOR_master.ddsp.vocoder import F0_Extractor, Volume_Extractor, Uni
 from DDSP_SVC_KOR_master.diffusion.vocoder import Vocoder
 from DDSP_SVC_KOR_master.train import ddsp_train
 from mail.mail import mail, send_mail, send_training_complete_email, send_inference_complete_email
+from datetime import datetime
+from flask import session
+from pathlib import Path
 
 def train_process(file_path, file_name):
     os.chdir(os.path.dirname(__file__))
@@ -132,6 +135,22 @@ def train_process(file_path, file_name):
     # 학습 시작
     print("**** train start SUCCESS ****")
     ddsp_train(args)
+
+    # 학습 완료 모델 계정 이전
+    now = datetime.now()
+    formatted_now = now.strftime("%Y%m%d_%H%M%S")
+
+    final_model_path = 'exp/sins-test/model_100000.pt'
+
+    user_id = session.get('user', {}).get('id')
+    if user_id:
+        account_local_path = f'../account/{user_id}/model/'
+
+    if not os.path.exists(Path(account_local_path)):
+        os.makedirs(Path(account_local_path))
+
+    if Path(final_model_path).exists():
+        shutil.copy(Path(final_model_path), Path(account_local_path + f'{formatted_now}_model_100000.pt'))
 
     # 학습 완료 메일 발송
     print("**** train finish SUCCESS ****")

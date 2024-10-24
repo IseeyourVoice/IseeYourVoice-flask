@@ -1,7 +1,7 @@
 import os
 import threading
 
-from flask import Flask, render_template, redirect, render_template, url_for, request, session, send_file
+from flask import Flask, render_template, redirect, render_template, url_for, request, session, send_file, send_from_directory
 from dotenv import load_dotenv
 from flask_login import LoginManager
 from pathlib import Path
@@ -78,6 +78,14 @@ def save_uploaded_make_file(file):
     file.close()
     return escaped_file_name, str(file_path)
 
+def save_uploaded_model_file(file):
+    escaped_file_name = escape_filename(file.filename)
+    file_path = UPLOAD_DIR / 'model' / escaped_file_name
+    file.save(file_path)
+    file.close()
+    return escaped_file_name, str(file_path)
+
+
 @app.route('/')
 def home():
     return render_template('index.html')
@@ -115,11 +123,14 @@ def make_start():
     if request.method == 'GET':
         return redirect('/')
 
-    file = request.files['file']
+    file = request.files['audio_file']
     file_name, file_path = save_uploaded_make_file(file)
 
+    model = request.files['model_file']
+    model_name, model_path = save_uploaded_model_file(model)
+
     # 여기서 비동기로 추론 시작
-    executor.submit(make_process.make_process(file_path, file_name))
+    executor.submit(make_process.make_process(file_path, file_name, model_path, model_name))
     os.chdir(os.path.dirname(__file__))
 
     return render_template('make_start.html')
@@ -155,6 +166,33 @@ def edit_finish():
 @app.route('/download')
 def download_file():
     return send_file(OUTPUT_FILE_PATH, as_attachment=True)
+
+
+@app.route('/mypage/<int:user_id>', methods=['GET', 'POST'])
+def mypage(user_id):
+    user_id = session['user']['id']  # 세션에서 유저 ID 가져오기
+    model_path = os.path.join('account', str(user_id), 'model')
+    cover_path = os.path.join('account', str(user_id), 'cover')
+
+    # 모델 파일 리스트
+    model_files = os.listdir(model_path) if os.path.exists(model_path) else []
+
+    # 음성 합성 작품 파일 리스트
+    cover_files = os.listdir(cover_path) if os.path.exists(cover_path) else []
+
+    return render_template('mypage.html', user_id=user_id, model_files=model_files, cover_files=cover_files)
+
+
+@app.route('/download_model/<user_id>/<filename>')
+def download_model(user_id, filename):
+    model_path = os.path.join('account', str(user_id), 'model')
+    return send_from_directory(model_path, filename)
+
+
+@app.route('/download_cover/<user_id>/<filename>')
+def download_cover(user_id, filename):
+    cover_path = os.path.join('account', str(user_id), 'cover')
+    return send_from_directory(cover_path, filename)
 
 
 if __name__ == '__main__':

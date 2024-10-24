@@ -1,7 +1,7 @@
 import os
 import threading
 
-from flask import Flask, render_template, redirect, render_template, url_for, request, session
+from flask import Flask, render_template, redirect, render_template, url_for, request, session, send_file
 from dotenv import load_dotenv
 from flask_login import LoginManager
 from pathlib import Path
@@ -16,6 +16,7 @@ from flask_bootstrap import Bootstrap5
 from models.user import User
 from concurrent.futures import ThreadPoolExecutor
 from mail.mail import mail, send_mail, send_training_complete_email, send_inference_complete_email
+from edit.edit import edit_audio
 from DDSP_SVC_KOR_master import train_process, make_process
 os.chdir(os.path.dirname(__file__))
 
@@ -54,6 +55,8 @@ mail.init_app(app)
 # Register blueprints
 app.register_blueprint(auth_bp, url_prefix='/auth')
 app.register_blueprint(community_bp, url_prefix='/post')
+
+OUTPUT_FILE_PATH = ""
 
 def escape_filename(filename: str):
     escape_chars = ' ', '[', ']', '*', '?', '/', '\\'
@@ -120,6 +123,38 @@ def make_start():
     os.chdir(os.path.dirname(__file__))
 
     return render_template('make_start.html')
+
+
+@app.route('/edit')
+def edit():
+    # 유저가 편집할 파일과 파라미터를 제출할 수 있느 form 존재 (edit.html)
+    return render_template('edit.html')
+
+
+@app.route('/edit_finish', methods=['GET', 'POST'])
+def edit_finish():
+    global OUTPUT_FILE_PATH
+
+    if request.method == 'GET':
+        return redirect('/')
+
+    file = request.files['file']
+    file_name, file_path = save_uploaded_make_file(file)
+
+    start_time = int(request.form['start_time'])
+    end_time = int(request.form['end_time'])
+    volume_change = int(request.form['volume_change'])
+    fade_in_time = int(request.form['fade_in_time'])
+    fade_out_time = int(request.form['fade_out_time'])
+
+    OUTPUT_FILE_PATH = edit_audio(file_name, file_path, start_time, end_time, volume_change, fade_in_time, fade_out_time)
+
+    return render_template('edit_finish.html', file_path=OUTPUT_FILE_PATH)  # file_path 전달
+
+
+@app.route('/download')
+def download_file():
+    return send_file(OUTPUT_FILE_PATH, as_attachment=True)
 
 
 if __name__ == '__main__':

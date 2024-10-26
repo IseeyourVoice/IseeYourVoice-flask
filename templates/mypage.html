@@ -1,0 +1,48 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<div class="container mt-5">
+    <!-- Welcome Section -->
+    <div class="text-center mb-5">
+        <h1 class="display-3 fw-bold text-primary">마이페이지</h1>
+        <p class="lead text-secondary">이곳에서 당신의 학습 모델과 음원 합성 작품을 확인하고 다운로드할 수 있습니다.</p>
+        <p class="lead text-secondary">당신의 유저 ID : {{ user_id }}</p>
+    </div>
+
+    <!-- 모델 파일 리스트 -->
+    <div class="mb-5">
+        <h2 class="text-primary">당신의 학습 모델</h2>
+        {% if model_files %}
+            <ul class="list-group">
+                {% for file in model_files %}
+                    <li class="list-group-item">
+                        <a href="{{ url_for('download_model', filename=file, user_id=user_id) }}">{{ file }}</a>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p class="text-secondary">모델 파일이 없습니다.</p>
+        {% endif %}
+    </div>
+
+    <!-- 음성 합성 작품 파일 리스트 -->
+    <div class="mb-5">
+        <h2 class="text-primary">당신의 음성 합성 작품</h2>
+        {% if cover_files %}
+            <ul class="list-group">
+                {% for file in cover_files %}
+                    <li class="list-group-item">
+                        <a href="{{ url_for('download_cover', filename=file, user_id=user_id) }}">{{ file }}</a>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p class="text-secondary">음성 합성 작품이 없습니다.</p>
+        {% endif %}
+    </div>
+
+    <link href="static/dropzone.css" rel="stylesheet">
+    <script src="{{ url_for('static', filename='style.js') }}"></script>
+    <script src="static/index.js"></script>
+</div>
+{% endblock %}

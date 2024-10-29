@@ -66,7 +66,7 @@ def get_data_loaders(args, whole_audio=False):
         shuffle=True,
         num_workers=args.train.num_workers if args.train.cache_device=='cpu' else 0,
         persistent_workers=(args.train.num_workers > 0) if args.train.cache_device=='cpu' else False,
-        pin_memory=True if args.train.cache_device=='cpu' else False
+        pin_memory=True
     )
     data_valid = AudioDataset(
         args.data.valid_path,

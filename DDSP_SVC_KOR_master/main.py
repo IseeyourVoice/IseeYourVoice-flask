@@ -8,6 +8,8 @@ import pyworld as pw
 import parselmouth
 import hashlib
 from ast import literal_eval
+
+from DDSP_SVC_KOR_master.sep_wav import demucs
 from DDSP_SVC_KOR_master.slicer import Slicer
 from DDSP_SVC_KOR_master.ddsp.vocoder import load_model, F0_Extractor, Volume_Extractor, Units_Encoder
 from DDSP_SVC_KOR_master.ddsp.core import upsample
@@ -152,170 +154,358 @@ def cross_fade(a: np.ndarray, b: np.ndarray, idx: int):
     return result
 
 
+# def inference(cmd=None):
+#     # parse commands
+#     if cmd == None:
+#         cmd = parse_args()
+#
+#     #device = 'cpu'
+#     device = cmd.device
+#     if device is None:
+#         device = 'cuda' if torch.cuda.is_available() else 'cpu'
+#
+#     # load ddsp model
+#     model, args = load_model(cmd.model_path, device=device)
+#
+#     # load input
+#     audio, sample_rate = librosa.load(cmd.input, sr=44100)
+#     if len(audio.shape) > 1:
+#         audio = librosa.to_mono(audio)
+#     hop_size = args.data.block_size * sample_rate / args.data.sampling_rate
+#
+#     # get MD5 hash from wav file
+#     md5_hash = ""
+#     with open(cmd.input, 'rb') as f:
+#         data = f.read()
+#         md5_hash = hashlib.md5(data).hexdigest()
+#         print("MD5: " + md5_hash)
+#
+#     cache_dir_path = os.path.join(os.path.dirname(__file__), "cache")
+#     cache_file_path = os.path.join(cache_dir_path,
+#                                    f"{cmd.pitch_extractor}_{hop_size}_{cmd.f0_min}_{cmd.f0_max}_{md5_hash}.npy")
+#
+#     is_cache_available = os.path.exists(cache_file_path)
+#     if is_cache_available:
+#         # f0 cache load
+#         print('Loading pitch curves for input audio from cache directory...')
+#         f0 = np.load(cache_file_path, allow_pickle=False)
+#     else:
+#         # extract f0
+#         print('Pitch extractor type: ' + cmd.pitch_extractor)
+#         pitch_extractor = F0_Extractor(
+#             cmd.pitch_extractor,
+#             sample_rate,
+#             hop_size,
+#             float(cmd.f0_min),
+#             float(cmd.f0_max))
+#         print('Extracting the pitch curve of the input audio...')
+#         f0 = pitch_extractor.extract(audio, uv_interp=True, device=device)
+#
+#         # f0 cache save
+#         os.makedirs(cache_dir_path, exist_ok=True)
+#         np.save(cache_file_path, f0, allow_pickle=False)
+#
+#     f0 = torch.from_numpy(f0).float().to(device).unsqueeze(-1).unsqueeze(0)
+#
+#     # key change
+#     f0 = f0 * 2 ** (float(cmd.key) / 12)
+#
+#     # extract volume
+#     print('Extracting the volume envelope of the input audio...')
+#     volume_extractor = Volume_Extractor(hop_size)
+#     volume = volume_extractor.extract(audio)
+#     mask = (volume > 10 ** (float(cmd.threhold) / 20)).astype('float')
+#     mask = np.pad(mask, (4, 4), constant_values=(mask[0], mask[-1]))
+#     mask = np.array([np.max(mask[n: n + 9]) for n in range(len(mask) - 8)])
+#     mask = torch.from_numpy(mask).float().to(device).unsqueeze(-1).unsqueeze(0)
+#     mask = upsample(mask, args.data.block_size).squeeze(-1)
+#     volume = torch.from_numpy(volume).float().to(device).unsqueeze(-1).unsqueeze(0)
+#
+#     # load units encoder
+#     if args.data.encoder == 'cnhubertsoftfish':
+#         cnhubertsoft_gate = args.data.cnhubertsoft_gate
+#     else:
+#         cnhubertsoft_gate = 10
+#     units_encoder = Units_Encoder(
+#         args.data.encoder,
+#         args.data.encoder_ckpt,
+#         args.data.encoder_sample_rate,
+#         args.data.encoder_hop_size,
+#         cnhubertsoft_gate=cnhubertsoft_gate,
+#         device=device)
+#
+#     # load enhancer
+#     if cmd.enhance == 'true':
+#         print('Enhancer type: ' + args.enhancer.type)
+#         enhancer = Enhancer(args.enhancer.type, args.enhancer.ckpt, device=device)
+#     else:
+#         print('Enhancer type: none (using raw output of ddsp)')
+#
+#     # speaker id or mix-speaker dictionary
+#     spk_mix_dict = literal_eval(cmd.spk_mix_dict)
+#     if spk_mix_dict is not None:
+#         print('Mix-speaker mode')
+#     else:
+#         print('Speaker ID: ' + str(int(cmd.spk_id)))
+#     spk_id = torch.LongTensor(np.array([[int(cmd.spk_id)]])).to(device)
+#
+#     # forward and save the output
+#     result = np.zeros(0)
+#     current_length = 0
+#     segments = split(audio, sample_rate, hop_size)
+#     print('Cut the input audio into ' + str(len(segments)) + ' slices')
+#     with torch.no_grad():
+#         result = np.zeros(0)
+#         current_length = 0
+#         for segment in tqdm(segments):
+#             start_frame = segment[0]
+#             seg_input = torch.from_numpy(segment[1]).float().unsqueeze(0).to(device)
+#
+#             seg_output = None  # seg_output 초기화
+#             output_sample_rate = args.data.sampling_rate  # 기본 샘플레이트 값
+#
+#             try:
+#                 # Units encoding and processing
+#                 seg_units = units_encoder.encode(seg_input, sample_rate, hop_size)
+#                 seg_f0 = f0[:, start_frame: start_frame + seg_units.size(1), :]
+#                 seg_volume = volume[:, start_frame: start_frame + seg_units.size(1), :]
+#
+#                 seg_output, _, (s_h, s_n) = model(seg_units, seg_f0, seg_volume, spk_id=spk_id,
+#                                                   spk_mix_dict=spk_mix_dict)
+#                 seg_output *= mask[:, start_frame * args.data.block_size: (start_frame + seg_units.size(
+#                     1)) * args.data.block_size]
+#
+#                 # Enhancer 처리
+#                 if cmd.enhance == 'true':
+#                     seg_output, output_sample_rate = enhancer.enhance(
+#                         seg_output,
+#                         args.data.sampling_rate,
+#                         seg_f0,
+#                         args.data.block_size,
+#                         adaptive_key=cmd.enhancer_adaptive_key)
+#                 else:
+#                     output_sample_rate = args.data.sampling_rate
+#
+#                 seg_output = seg_output.squeeze().cpu().numpy()
+#
+#             except Exception as e:
+#                 # 오류 발생 시 seg_output을 빈 배열로 설정
+#                 print(f"Error during processing segment: {e}")
+#                 seg_output = np.zeros(0)  # 예외 발생 시 빈 배열로 초기화
+#
+#             finally:
+#                 # 텐서가 정의된 경우에만 삭제
+#                 del seg_input
+#                 if 'seg_units' in locals():
+#                     del seg_units
+#                 if 'seg_f0' in locals():
+#                     del seg_f0
+#                 if 'seg_volume' in locals():
+#                     del seg_volume
+#                 torch.cuda.empty_cache()
+#
+#             # seg_output이 빈 배열일 경우 cross_fade를 건너뜁니다.
+#             if seg_output is not None and len(seg_output) > 0:
+#                 silent_length = round(
+#                     start_frame * args.data.block_size * output_sample_rate / args.data.sampling_rate) - current_length
+#                 if silent_length >= 0:
+#                     result = np.append(result, np.zeros(silent_length))
+#                     result = np.append(result, seg_output)
+#                 else:
+#                     result = cross_fade(result, seg_output, current_length + silent_length)
+#                 current_length = current_length + silent_length + len(seg_output)
+#
+#         # 결과 저장
+#         sf.write(cmd.output, result, output_sample_rate)
+
 def inference(cmd=None):
-    # parse commands
-    if cmd == None:
+    if cmd is None:
         cmd = parse_args()
 
-    #device = 'cpu' 
-    device = cmd.device
-    if device is None:
-        device = 'cuda' if torch.cuda.is_available() else 'cpu'
-
-    # load ddsp model
+    device = cmd.device if cmd.device else 'cuda' if torch.cuda.is_available() else 'cpu'
     model, args = load_model(cmd.model_path, device=device)
 
-    # load input
-    audio, sample_rate = librosa.load(cmd.input, sr=44100)
-    if len(audio.shape) > 1:
-        audio = librosa.to_mono(audio)
+    # Step 1: Demucs로 보컬과 MR 분리
+    separated_path = "separated_audio"
+    os.makedirs(separated_path, exist_ok=True)
+
+    demucs_vocals_path = os.path.join(separated_path, "vocals.wav")
+    demucs_mr_path = os.path.join(separated_path, "mr.wav")
+
+    demucs(cmd.input, demucs_vocals_path, demucs_mr_path)  # 보컬과 MR 분리
+
+    # Step 2: Load and prepare input audio (vocals only)
+    audio, sample_rate = librosa.load(demucs_vocals_path, sr=44100)
+    audio = librosa.to_mono(audio) if len(audio.shape) > 1 else audio
     hop_size = args.data.block_size * sample_rate / args.data.sampling_rate
 
-    # get MD5 hash from wav file
-    md5_hash = ""
-    with open(cmd.input, 'rb') as f:
-        data = f.read()
-        md5_hash = hashlib.md5(data).hexdigest()
-        print("MD5: " + md5_hash)
-
+    # Pitch curve cache handling
     cache_dir_path = os.path.join(os.path.dirname(__file__), "cache")
+    os.makedirs(cache_dir_path, exist_ok=True)
     cache_file_path = os.path.join(cache_dir_path,
-                                   f"{cmd.pitch_extractor}_{hop_size}_{cmd.f0_min}_{cmd.f0_max}_{md5_hash}.npy")
+                                   f"{cmd.pitch_extractor}_{hop_size}_{cmd.f0_min}_{cmd.f0_max}_{hashlib.md5(audio).hexdigest()}.npy")
 
-    is_cache_available = os.path.exists(cache_file_path)
-    if is_cache_available:
-        # f0 cache load
-        print('Loading pitch curves for input audio from cache directory...')
-        f0 = np.load(cache_file_path, allow_pickle=False)
+    if os.path.exists(cache_file_path):
+        print('Loading pitch curves from cache...')
+        f0 = np.load(cache_file_path)
     else:
-        # extract f0
-        print('Pitch extractor type: ' + cmd.pitch_extractor)
-        pitch_extractor = F0_Extractor(
-            cmd.pitch_extractor,
-            sample_rate,
-            hop_size,
-            float(cmd.f0_min),
-            float(cmd.f0_max))
-        print('Extracting the pitch curve of the input audio...')
+        pitch_extractor = F0_Extractor(cmd.pitch_extractor, sample_rate, hop_size, float(cmd.f0_min), float(cmd.f0_max))
         f0 = pitch_extractor.extract(audio, uv_interp=True, device=device)
+        np.save(cache_file_path, f0)
 
-        # f0 cache save
-        os.makedirs(cache_dir_path, exist_ok=True)
-        np.save(cache_file_path, f0, allow_pickle=False)
-
+    # Transfer data to device
     f0 = torch.from_numpy(f0).float().to(device).unsqueeze(-1).unsqueeze(0)
-
-    # key change
-    f0 = f0 * 2 ** (float(cmd.key) / 12)
-
-    # extract volume 
-    print('Extracting the volume envelope of the input audio...')
+    f0 *= 2 ** (float(cmd.key) / 12)
     volume_extractor = Volume_Extractor(hop_size)
     volume = volume_extractor.extract(audio)
     mask = (volume > 10 ** (float(cmd.threhold) / 20)).astype('float')
-    mask = np.pad(mask, (4, 4), constant_values=(mask[0], mask[-1]))
-    mask = np.array([np.max(mask[n: n + 9]) for n in range(len(mask) - 8)])
     mask = torch.from_numpy(mask).float().to(device).unsqueeze(-1).unsqueeze(0)
     mask = upsample(mask, args.data.block_size).squeeze(-1)
     volume = torch.from_numpy(volume).float().to(device).unsqueeze(-1).unsqueeze(0)
 
-    # load units encoder
-    if args.data.encoder == 'cnhubertsoftfish':
-        cnhubertsoft_gate = args.data.cnhubertsoft_gate
-    else:
-        cnhubertsoft_gate = 10
-    units_encoder = Units_Encoder(
-        args.data.encoder,
-        args.data.encoder_ckpt,
-        args.data.encoder_sample_rate,
-        args.data.encoder_hop_size,
-        cnhubertsoft_gate=cnhubertsoft_gate,
-        device=device)
+    units_encoder = Units_Encoder(args.data.encoder, args.data.encoder_ckpt, args.data.encoder_sample_rate,
+                                  args.data.encoder_hop_size, cnhubertsoft_gate=args.data.cnhubertsoft_gate,
+                                  device=device)
+    enhancer = Enhancer(args.enhancer.type, args.enhancer.ckpt, device=device) if cmd.enhance == 'true' else None
 
-    # load enhancer
-    if cmd.enhance == 'true':
-        print('Enhancer type: ' + args.enhancer.type)
-        enhancer = Enhancer(args.enhancer.type, args.enhancer.ckpt, device=device)
-    else:
-        print('Enhancer type: none (using raw output of ddsp)')
-
-    # speaker id or mix-speaker dictionary
-    spk_mix_dict = literal_eval(cmd.spk_mix_dict)
-    if spk_mix_dict is not None:
-        print('Mix-speaker mode')
-    else:
-        print('Speaker ID: ' + str(int(cmd.spk_id)))
-    spk_id = torch.LongTensor(np.array([[int(cmd.spk_id)]])).to(device)
-
-    # forward and save the output
+    spk_id = torch.LongTensor([[int(cmd.spk_id)]]).to(device)
     result = np.zeros(0)
-    current_length = 0
     segments = split(audio, sample_rate, hop_size)
-    print('Cut the input audio into ' + str(len(segments)) + ' slices')
+    print(f'Processing {len(segments)} audio slices...')
+
     with torch.no_grad():
-        result = np.zeros(0)
-        current_length = 0
         for segment in tqdm(segments):
-            start_frame = segment[0]
-            seg_input = torch.from_numpy(segment[1]).float().unsqueeze(0).to(device)
-
-            seg_output = None  # seg_output 초기화
-            output_sample_rate = args.data.sampling_rate  # 기본 샘플레이트 값
-
             try:
-                # Units encoding and processing
+                start_frame = segment[0]
+                seg_input = torch.from_numpy(segment[1]).float().unsqueeze(0).to(device)
+
+                # Segment processing
                 seg_units = units_encoder.encode(seg_input, sample_rate, hop_size)
                 seg_f0 = f0[:, start_frame: start_frame + seg_units.size(1), :]
                 seg_volume = volume[:, start_frame: start_frame + seg_units.size(1), :]
-
-                seg_output, _, (s_h, s_n) = model(seg_units, seg_f0, seg_volume, spk_id=spk_id,
-                                                  spk_mix_dict=spk_mix_dict)
+                seg_output, _, _ = model(seg_units, seg_f0, seg_volume, spk_id=spk_id,
+                                         spk_mix_dict=literal_eval(cmd.spk_mix_dict))
                 seg_output *= mask[:, start_frame * args.data.block_size: (start_frame + seg_units.size(
                     1)) * args.data.block_size]
 
-                # Enhancer 처리
-                if cmd.enhance == 'true':
-                    seg_output, output_sample_rate = enhancer.enhance(
-                        seg_output,
-                        args.data.sampling_rate,
-                        seg_f0,
-                        args.data.block_size,
-                        adaptive_key=cmd.enhancer_adaptive_key)
+                if enhancer:
+                    seg_output, output_sample_rate = enhancer.enhance(seg_output, args.data.sampling_rate, seg_f0,
+                                                                      args.data.block_size,
+                                                                      adaptive_key=cmd.enhancer_adaptive_key)
                 else:
                     output_sample_rate = args.data.sampling_rate
 
                 seg_output = seg_output.squeeze().cpu().numpy()
 
-            except Exception as e:
-                # 오류 발생 시 seg_output을 빈 배열로 설정
-                print(f"Error during processing segment: {e}")
-                seg_output = np.zeros(0)  # 예외 발생 시 빈 배열로 초기화
-
-            finally:
-                # 텐서가 정의된 경우에만 삭제
-                del seg_input
-                if 'seg_units' in locals():
-                    del seg_units
-                if 'seg_f0' in locals():
-                    del seg_f0
-                if 'seg_volume' in locals():
-                    del seg_volume
-                torch.cuda.empty_cache()
-
-            # seg_output이 빈 배열일 경우 cross_fade를 건너뜁니다.
-            if seg_output is not None and len(seg_output) > 0:
                 silent_length = round(
-                    start_frame * args.data.block_size * output_sample_rate / args.data.sampling_rate) - current_length
-                if silent_length >= 0:
-                    result = np.append(result, np.zeros(silent_length))
-                    result = np.append(result, seg_output)
-                else:
-                    result = cross_fade(result, seg_output, current_length + silent_length)
-                current_length = current_length + silent_length + len(seg_output)
+                    start_frame * args.data.block_size * output_sample_rate / args.data.sampling_rate) - len(result)
+                result = np.concatenate(
+                    [result, np.zeros(max(0, silent_length)), seg_output]) if silent_length >= 0 else cross_fade(result,
+                                                                                                                 seg_output,
+                                                                                                                 len(result) + silent_length)
 
-        send_inference_complete_email()
-        # 결과 저장
-        sf.write(cmd.output, result, output_sample_rate)
+            except Exception as e:
+                print(f"Error in segment processing: {e}")
+                continue  # Skip problematic segment
+
+        # Step 3: Load MR and combine
+        mr_audio, _ = librosa.load(demucs_mr_path, sr=44100)  # MR 로드
+        min_length = min(len(result), len(mr_audio))
+        result = result[:min_length]  # result를 min_length에 맞춰 자름
+        mr_audio = mr_audio[:min_length]  # mr_audio도 min_length에 맞춰 자름
+
+        output_audio = result + mr_audio  # 이제 길이가 맞춰진 두 오디오를 결합
+
+        # Step 4: 최종 오디오 파일로 저장
+        sf.write(cmd.output, output_audio, output_sample_rate)
+
+    print("추론 및 MR 결합 완료:", cmd.output)
+# def inference(cmd=None):
+#     if cmd == None:
+#         cmd = parse_args()
+#
+#     device = cmd.device if cmd.device else 'cuda' if torch.cuda.is_available() else 'cpu'
+#     model, args = load_model(cmd.model_path, device=device)
+#
+#     # Load and prepare input audio
+#     audio, sample_rate = librosa.load(cmd.input, sr=44100)
+#     audio = librosa.to_mono(audio) if len(audio.shape) > 1 else audio
+#     hop_size = args.data.block_size * sample_rate / args.data.sampling_rate
+#
+#     # Pitch curve cache handling
+#     cache_dir_path = os.path.join(os.path.dirname(__file__), "cache")
+#     os.makedirs(cache_dir_path, exist_ok=True)
+#     cache_file_path = os.path.join(cache_dir_path,
+#                                    f"{cmd.pitch_extractor}_{hop_size}_{cmd.f0_min}_{cmd.f0_max}_{hashlib.md5(audio).hexdigest()}.npy")
+#
+#     if os.path.exists(cache_file_path):
+#         print('Loading pitch curves from cache...')
+#         f0 = np.load(cache_file_path)
+#     else:
+#         pitch_extractor = F0_Extractor(cmd.pitch_extractor, sample_rate, hop_size, float(cmd.f0_min), float(cmd.f0_max))
+#         f0 = pitch_extractor.extract(audio, uv_interp=True, device=device)
+#         np.save(cache_file_path, f0)
+#
+#     # Transfer data to device
+#     f0 = torch.from_numpy(f0).float().to(device).unsqueeze(-1).unsqueeze(0)
+#     f0 *= 2 ** (float(cmd.key) / 12)
+#     volume_extractor = Volume_Extractor(hop_size)
+#     volume = volume_extractor.extract(audio)
+#     mask = (volume > 10 ** (float(cmd.threhold) / 20)).astype('float')
+#     mask = torch.from_numpy(mask).float().to(device).unsqueeze(-1).unsqueeze(0)
+#     mask = upsample(mask, args.data.block_size).squeeze(-1)
+#     volume = torch.from_numpy(volume).float().to(device).unsqueeze(-1).unsqueeze(0)
+#
+#     units_encoder = Units_Encoder(args.data.encoder, args.data.encoder_ckpt, args.data.encoder_sample_rate,
+#                                   args.data.encoder_hop_size, cnhubertsoft_gate=args.data.cnhubertsoft_gate,
+#                                   device=device)
+#     enhancer = Enhancer(args.enhancer.type, args.enhancer.ckpt, device=device) if cmd.enhance == 'true' else None
+#
+#     spk_id = torch.LongTensor([[int(cmd.spk_id)]]).to(device)
+#     result = np.zeros(0)
+#     segments = split(audio, sample_rate, hop_size)
+#     print(f'Processing {len(segments)} audio slices...')
+#
+#     with torch.no_grad():
+#         for segment in tqdm(segments):
+#             try:
+#                 start_frame = segment[0]
+#                 seg_input = torch.from_numpy(segment[1]).float().unsqueeze(0).to(device)
+#
+#                 # Segment processing
+#                 seg_units = units_encoder.encode(seg_input, sample_rate, hop_size)
+#                 seg_f0 = f0[:, start_frame: start_frame + seg_units.size(1), :]
+#                 seg_volume = volume[:, start_frame: start_frame + seg_units.size(1), :]
+#                 seg_output, _, _ = model(seg_units, seg_f0, seg_volume, spk_id=spk_id,
+#                                          spk_mix_dict=literal_eval(cmd.spk_mix_dict))
+#                 seg_output *= mask[:, start_frame * args.data.block_size: (start_frame + seg_units.size(
+#                     1)) * args.data.block_size]
+#
+#                 if enhancer:
+#                     seg_output, output_sample_rate = enhancer.enhance(seg_output, args.data.sampling_rate, seg_f0,
+#                                                                       args.data.block_size,
+#                                                                       adaptive_key=cmd.enhancer_adaptive_key)
+#                 else:
+#                     output_sample_rate = args.data.sampling_rate
+#
+#                 seg_output = seg_output.squeeze().cpu().numpy()
+#
+#                 silent_length = round(
+#                     start_frame * args.data.block_size * output_sample_rate / args.data.sampling_rate) - len(result)
+#                 result = np.concatenate(
+#                     [result, np.zeros(max(0, silent_length)), seg_output]) if silent_length >= 0 else cross_fade(result,
+#                                                                                                                  seg_output,
+#                                                                                                                  len(result) + silent_length)
+#
+#             except Exception as e:
+#                 print(f"Error in segment processing: {e}")
+#                 continue  # Skip problematic segment
+#
+#             # finally:
+#             #     del seg_input, seg_units, seg_f0, seg_volume
+#             #     torch.cuda.empty_cache()  # Release memory
+#
+#         sf.write(cmd.output, result, output_sample_rate)
 
 
 if __name__ == '__main__':

@@ -1,9 +1,10 @@
 import os
 import threading
 
-from flask import Flask, render_template, redirect, render_template, url_for, request, session, send_file, send_from_directory
+from flask import Flask, render_template, redirect, render_template, url_for, request, session, send_file, \
+    send_from_directory
 from dotenv import load_dotenv
-from flask_login import LoginManager
+from flask_login import LoginManager, login_required
 from pathlib import Path
 from auth import login_manager
 from auth.oauth import oauth, create_google_oauth
@@ -18,6 +19,7 @@ from concurrent.futures import ThreadPoolExecutor
 from mail.mail import mail, send_mail, send_training_complete_email, send_inference_complete_email
 from edit.edit import edit_audio
 from DDSP_SVC_KOR_master import train_process, make_process
+
 os.chdir(os.path.dirname(__file__))
 
 # Load environment variables
@@ -42,10 +44,13 @@ UPLOAD_DIR.mkdir(exist_ok=True)
 
 executor = ThreadPoolExecutor(max_workers=2)
 
+
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
 
+
+os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'expandable_segments:True'
 # Initialize OAuth
 oauth.init_app(app)
 google = create_google_oauth(app)
@@ -58,11 +63,13 @@ app.register_blueprint(community_bp, url_prefix='/post')
 
 OUTPUT_FILE_PATH = ""
 
+
 def escape_filename(filename: str):
     escape_chars = ' ', '[', ']', '*', '?', '/', '\\'
     for char in escape_chars:
         filename = filename.replace(char, '_')
     return filename
+
 
 def save_uploaded_train_file(file):
     escaped_file_name = escape_filename(file.filename)
@@ -71,12 +78,14 @@ def save_uploaded_train_file(file):
     file.close()
     return escaped_file_name, str(file_path)
 
+
 def save_uploaded_make_file(file):
     escaped_file_name = escape_filename(file.filename)
     file_path = UPLOAD_DIR / 'make' / escaped_file_name
     file.save(file_path)
     file.close()
     return escaped_file_name, str(file_path)
+
 
 def save_uploaded_model_file(file):
     escaped_file_name = escape_filename(file.filename)
@@ -92,12 +101,14 @@ def home():
 
 
 @app.route('/train')
+@login_required
 def train():
     # 유저의 학습 파일 업로드 form 존재 (train.html)
     return render_template('train.html')
 
 
 @app.route('/train_start', methods=['GET', 'POST'])
+@login_required
 def train_start():
     if request.method == 'GET':
         return redirect('/')
@@ -113,12 +124,14 @@ def train_start():
 
 
 @app.route('/make')
+@login_required
 def make():
     # 유저의 추론 파일 업로드 form 존재 (make.html)
     return render_template('make.html')
 
 
 @app.route('/make_start', methods=['GET', 'POST'])
+@login_required
 def make_start():
     if request.method == 'GET':
         return redirect('/')
@@ -137,12 +150,14 @@ def make_start():
 
 
 @app.route('/edit')
+@login_required
 def edit():
     # 유저가 편집할 파일과 파라미터를 제출할 수 있느 form 존재 (edit.html)
     return render_template('edit.html')
 
 
 @app.route('/edit_finish', methods=['GET', 'POST'])
+@login_required
 def edit_finish():
     global OUTPUT_FILE_PATH
 
@@ -158,17 +173,20 @@ def edit_finish():
     fade_in_time = int(request.form['fade_in_time'])
     fade_out_time = int(request.form['fade_out_time'])
 
-    OUTPUT_FILE_PATH = edit_audio(file_name, file_path, start_time, end_time, volume_change, fade_in_time, fade_out_time)
+    OUTPUT_FILE_PATH = edit_audio(file_name, file_path, start_time, end_time, volume_change, fade_in_time,
+                                  fade_out_time)
 
     return render_template('edit_finish.html', file_path=OUTPUT_FILE_PATH)  # file_path 전달
 
 
 @app.route('/download')
+@login_required
 def download_file():
     return send_file(OUTPUT_FILE_PATH, as_attachment=True)
 
 
 @app.route('/mypage/<int:user_id>', methods=['GET', 'POST'])
+@login_required
 def mypage(user_id):
     user_id = session['user']['id']  # 세션에서 유저 ID 가져오기
     model_path = os.path.join('account', str(user_id), 'model')
@@ -184,12 +202,14 @@ def mypage(user_id):
 
 
 @app.route('/download_model/<user_id>/<filename>')
+@login_required
 def download_model(user_id, filename):
     model_path = os.path.join('account', str(user_id), 'model')
     return send_from_directory(model_path, filename)
 
 
 @app.route('/download_cover/<user_id>/<filename>')
+@login_required
 def download_cover(user_id, filename):
     cover_path = os.path.join('account', str(user_id), 'cover')
     return send_from_directory(cover_path, filename)

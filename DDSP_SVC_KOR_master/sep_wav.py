@@ -1,17 +1,19 @@
 import os
-import subprocess
-from glob import glob
 from typing import List
+from tqdm import tqdm
+from glob import glob
+import subprocess
 
-import librosa
 import numpy as np
+import librosa
 import soundfile
+from pydub import AudioSegment, effects
 import torch
 import torchaudio
-from pydub import AudioSegment, effects
+from torchaudio.utils import download_asset
 from torchaudio.pipelines import HDEMUCS_HIGH_MUSDB_PLUS
 from torchaudio.transforms import Fade
-from tqdm import tqdm
+from DDSP_SVC_KOR_master.logger.utils import traverse_dir
 
 temp_log_path = "temp_ffmpeg_log.txt"  # ffmpeg의 무음 감지 로그의 임시 저장 위치
 
@@ -219,8 +221,8 @@ def main(input_dir: str, output_dir: str, split_sil: bool = False, use_preproces
             waveform.to(device)
 
             # parameters
-            segment: int = 15
-            overlap = 0.1
+            segment: int = 30
+            overlap = 0.3
 
             sources = extract_voice(
                 model,
@@ -304,7 +306,7 @@ def demucs(input_path, output_path):
 
         # If audio is stereo, convert to mono
         if num_channels == 1:
-            waveform = torchaudio.functional.remix_channels(waveform, [0, 0])
+            waveform = torchaudio.functional.remix_channels (waveform, [0, 0])
 
         waveform.to(device)
 
@@ -336,6 +338,47 @@ def demucs(input_path, output_path):
         #     rawsound = AudioSegment.from_file(out_filepath, format='wav')
         #     rawsound = rawsound.set_channels(1)
         #     rawsound.export(out_filepath, format="wav")
+
+
+def demucs(input_path, vocals_path, mr_path):
+    bundle = HDEMUCS_HIGH_MUSDB_PLUS
+    model = bundle.get_model().to(device)
+
+    # 오디오 로드 및 샘플링 속도 조정
+    waveform, sample_rate = torchaudio.load(input_path)
+    target_sample_rate = 44100
+    if sample_rate != target_sample_rate:
+        waveform = torchaudio.transforms.Resample(orig_freq=sample_rate, new_freq=target_sample_rate)(waveform)
+        sample_rate = target_sample_rate
+    waveform = waveform.to(device)
+
+    sources = extract_voice(model, waveform[None], device=device, segment=30, overlap=0.5, sample_rate=sample_rate)[0]
+    sources_list = model.sources
+    audios = dict(zip(sources_list, sources))
+
+    # sources_list와 audios의 키 확인
+    print("Available keys in sources_list:", sources_list)
+    print("Available keys in audios dictionary:", audios.keys())
+
+    # 보컬 저장
+    if "vocals" in audios:
+        torchaudio.save(vocals_path, audios["vocals"].cpu(), sample_rate)
+    else:
+        print("No vocals source found in the separated audio.")
+
+    # MR 저장 (bass, drums, other를 합침)
+    mr_waveform = None
+    for key in ["bass", "drums", "other"]:
+        if key in audios:
+            if mr_waveform is None:
+                mr_waveform = audios[key]
+            else:
+                mr_waveform += audios[key]  # 파형을 더하여 결합
+
+    if mr_waveform is not None:
+        torchaudio.save(mr_path, mr_waveform.cpu(), sample_rate)
+    else:
+        print("No bass, drums, or other sources found in the separated audio.")
 
 
 if __name__ == "__main__":

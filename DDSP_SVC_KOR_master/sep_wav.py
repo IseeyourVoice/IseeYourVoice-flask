@@ -221,7 +221,7 @@ def main(input_dir: str, output_dir: str, split_sil: bool = False, use_preproces
             waveform.to(device)
 
             # parameters
-            segment: int = 30
+            segment: int = 20
             overlap = 0.3
 
             sources = extract_voice(
@@ -311,7 +311,7 @@ def demucs(input_path, output_path):
         waveform.to(device)
 
         # parameters
-        segment: int = 15
+        segment: int = 10
         overlap = 0.1
 
         sources = extract_voice(
@@ -340,7 +340,7 @@ def demucs(input_path, output_path):
         #     rawsound.export(out_filepath, format="wav")
 
 
-def demucs(input_path, vocals_path, mr_path):
+def demucs_inf(input_path, vocals_path, mr_path):
     bundle = HDEMUCS_HIGH_MUSDB_PLUS
     model = bundle.get_model().to(device)
 
@@ -352,7 +352,7 @@ def demucs(input_path, vocals_path, mr_path):
         sample_rate = target_sample_rate
     waveform = waveform.to(device)
 
-    sources = extract_voice(model, waveform[None], device=device, segment=30, overlap=0.5, sample_rate=sample_rate)[0]
+    sources = extract_voice(model, waveform[None], device=device, segment=15, overlap=0.1, sample_rate=sample_rate)[0]
     sources_list = model.sources
     audios = dict(zip(sources_list, sources))
 

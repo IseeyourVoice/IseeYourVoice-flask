@@ -15,8 +15,7 @@ from DDSP_SVC_KOR_master.diffusion.vocoder import Vocoder
 from DDSP_SVC_KOR_master.draw import main
 from DDSP_SVC_KOR_master.logger import utils
 from DDSP_SVC_KOR_master.preprocess import preprocess
-from DDSP_SVC_KOR_master.sep_wav import audio_norm
-from DDSP_SVC_KOR_master.sep_wav import demucs
+from DDSP_SVC_KOR_master.sep_wav import audio_norm, demucs
 from DDSP_SVC_KOR_master.sep_wav import get_ffmpeg_args
 from DDSP_SVC_KOR_master.train import ddsp_train
 
@@ -157,4 +156,4 @@ def train_process(file_path, file_name):
 
     # 학습 완료 메일 발송
     print("**** train finish SUCCESS ****")
-    # send_training_complete_email()
+    send_training_complete_email()

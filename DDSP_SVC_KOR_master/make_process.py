@@ -8,6 +8,7 @@ import yaml
 from flask import session
 
 from DDSP_SVC_KOR_master.main import inference
+from mail.mail import send_inference_complete_email
 
 
 def make_process(file_path, file_name, model_path, model_name):
@@ -124,4 +125,4 @@ def make_process(file_path, file_name, model_path, model_name):
 
     # 추론 완료 메일 발송
     print("**** make finish SUCCESS ****")
-    # send_inference_complete_email()
+    send_inference_complete_email()

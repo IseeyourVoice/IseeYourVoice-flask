@@ -9,7 +9,7 @@ import parselmouth
 import hashlib
 from ast import literal_eval
 
-from DDSP_SVC_KOR_master.sep_wav import demucs
+from DDSP_SVC_KOR_master.sep_wav import demucs_inf
 from DDSP_SVC_KOR_master.slicer import Slicer
 from DDSP_SVC_KOR_master.ddsp.vocoder import load_model, F0_Extractor, Volume_Extractor, Units_Encoder
 from DDSP_SVC_KOR_master.ddsp.core import upsample
@@ -332,7 +332,7 @@ def inference(cmd=None):
     demucs_vocals_path = os.path.join(separated_path, "vocals.wav")
     demucs_mr_path = os.path.join(separated_path, "mr.wav")
 
-    demucs(cmd.input, demucs_vocals_path, demucs_mr_path)  # 보컬과 MR 분리
+    demucs_inf(cmd.input, demucs_vocals_path, demucs_mr_path)  # 보컬과 MR 분리
 
     # Step 2: Load and prepare input audio (vocals only)
     audio, sample_rate = librosa.load(demucs_vocals_path, sr=44100)

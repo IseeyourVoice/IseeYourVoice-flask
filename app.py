@@ -126,6 +126,7 @@ def train_start():
 @app.route('/make')
 @login_required
 def make():
+
     # 유저의 추론 파일 업로드 form 존재 (make.html)
     return render_template('make.html')
 
